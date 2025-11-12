@@ -80,6 +80,18 @@ double calcNLL(TH1F* h, TF1* f){
   return 2*nll;   // factor of 2 so the 1 sigma error contours follow the chi^2 convention
 }
 
+double calcChi2(TH1F* h, TF1* f) {
+  double chi2 = 0;
+  for (int i = 1; i <= h->GetNbinsX(); ++i) {
+    double x  = h->GetBinCenter(i);
+    double n  = h->GetBinContent(i);
+    double mu = f->Eval(x);
+    double sigma = (n > 0) ? sqrt(n) : 1.0; // avoid div-by-zero
+    chi2 += pow((n - mu) / sigma, 2);
+  }
+  return chi2;
+}
+
 
 //-------------------------------------------------------------------------
 // Minuit fcn: calculates value of the function to be minimized using
@@ -98,7 +110,7 @@ void fcn(int& npar, double* deriv, double& f, double par[], int flag){
     fparam->SetParameter(i,par[i]);
   }
 
-  f = calcNLL(hdata,fparam);
+  f = calcChi2(hdata,fparam);
  
 }
 
@@ -229,9 +241,13 @@ int main(int argc, char **argv) {
     cout << i << " : " << outpar[i] << " +- " << err[i] << endl;
   }
 
+
+  canvas->SaveAs("chi2_fit_result.pdf");
+
   cout << "\nTo exit, quit ROOT from the File menu of the plot (or use control-C)" << endl;
   theApp.SetIdleTimer(30,".q");  // set up a failsafe timer to end the program
   theApp.Run(true);
+
   canvas->Close();
 
   return 0;
